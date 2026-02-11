@@ -5,6 +5,8 @@ metadata:
   namespace: quick-page
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: quick-page
