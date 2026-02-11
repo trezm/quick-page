@@ -56,11 +56,10 @@ export function setupMcp(app: Application) {
       const transport = transports.get(sessionId)!;
       // Intercept response
       const origWrite = res.write.bind(res);
-      const origEnd = res.end.bind(res);
-      res.write = function(...args: any[]) {
-        console.log(`MCP response write: ${args[0]?.toString?.()?.substring(0, 500)}`);
-        return origWrite(...args);
-      } as any;
+      (res as any).write = function(chunk: any, ...rest: any[]) {
+        console.log(`MCP response write: ${chunk?.toString?.()?.substring(0, 500)}`);
+        return origWrite(chunk, ...rest);
+      };
       const origSetHeader = res.setHeader.bind(res);
       res.setHeader = function(name: string, value: any) {
         console.log(`MCP response header: ${name}=${value}`);
