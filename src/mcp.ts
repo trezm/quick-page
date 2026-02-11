@@ -58,6 +58,7 @@ export function setupMcp(app: Application) {
     // New session
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => crypto.randomUUID(),
+      enableJsonResponse: true,
     });
     const server = createMcpServer();
 
