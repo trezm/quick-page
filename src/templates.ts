@@ -189,8 +189,9 @@ export function renderPageTemplate(tsxCode: string): string {
       code = code.replace(/import\\s+\\*\\s+as\\s+(\\w+)\\s+from\\s+["']([^"']+)["'];?/g, function(_, name, mod) {
         return 'const ' + name + ' = __modules["' + mod + '"];';
       });
-      // strip any remaining export default / export { ... }
-      code = code.replace(/export\\s+default\\s+/g, '');
+      // capture default export as __qp_default
+      code = code.replace(/export\\s+default\\s+/g, 'var __qp_default = ');
+      // strip named exports
       code = code.replace(/export\\s+\\{[^}]*\\};?/g, '');
       code = code.replace(/export\\s+(?=function|const|let|var|class)/g, '');
       return code;
@@ -221,7 +222,7 @@ export function renderPageTemplate(tsxCode: string): string {
     try {
       var tsxCode = ${escapedCode};
       var transformed = __transformImports(tsxCode);
-      var renderCode = transformed + '\\n;ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));';
+      var renderCode = transformed + '\\n;ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(typeof __qp_default !== "undefined" ? __qp_default : App));';
       var compiled = Babel.transform(renderCode, {
         presets: ['react', ['typescript', { isTSX: true, allExtensions: true }]],
         filename: 'app.tsx'
