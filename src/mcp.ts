@@ -39,6 +39,12 @@ function createMcpServer() {
 export function setupMcp(app: Application) {
   const transports = new Map<string, StreamableHTTPServerTransport>();
 
+  // Disable Cloudflare buffering for MCP endpoints (SSE/streaming)
+  app.use("/mcp", (_req: Request, res: Response, next) => {
+    res.setHeader("X-Accel-Buffering", "no");
+    next();
+  });
+
   app.post("/mcp", async (req: Request, res: Response) => {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
