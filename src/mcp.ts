@@ -47,6 +47,8 @@ export function setupMcp(app: Application) {
 
   app.post("/mcp", async (req: Request, res: Response) => {
     console.log(`MCP POST from ${req.ip} - UA: ${req.get("user-agent")} - Accept: ${req.get("accept")}`);
+    console.log(`MCP POST body: ${JSON.stringify(req.body)}`);
+    console.log(`MCP POST headers: session=${req.headers["mcp-session-id"]}, content-type=${req.get("content-type")}`);
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
     if (sessionId && transports.has(sessionId)) {
