@@ -156,6 +156,7 @@ export function renderPageTemplate(tsxCode: string): string {
   <title>Quick Page</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
+  <script crossorigin src="https://unpkg.com/recharts@2/umd/Recharts.js"><\/script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
   <script src="https://cdn.tailwindcss.com"><\/script>
   <style>
@@ -166,6 +167,36 @@ export function renderPageTemplate(tsxCode: string): string {
 <body>
   <div id="root"></div>
   <script>
+    // Module registry for import resolution
+    var __modules = {
+      "react": React,
+      "react-dom": ReactDOM,
+      "react-dom/client": ReactDOM,
+      "recharts": typeof Recharts !== "undefined" ? Recharts : {}
+    };
+
+    // Transform import statements to use __modules
+    function __transformImports(code) {
+      // import { X, Y } from "module"
+      code = code.replace(/import\\s*\\{([^}]+)\\}\\s*from\\s*["']([^"']+)["'];?/g, function(_, imports, mod) {
+        return 'const {' + imports + '} = __modules["' + mod + '"];';
+      });
+      // import Default from "module"
+      code = code.replace(/import\\s+(\\w+)\\s+from\\s+["']([^"']+)["'];?/g, function(_, name, mod) {
+        return 'const ' + name + ' = __modules["' + mod + '"].default || __modules["' + mod + '"];';
+      });
+      // import * as X from "module"
+      code = code.replace(/import\\s+\\*\\s+as\\s+(\\w+)\\s+from\\s+["']([^"']+)["'];?/g, function(_, name, mod) {
+        return 'const ' + name + ' = __modules["' + mod + '"];';
+      });
+      // strip any remaining export default / export { ... }
+      code = code.replace(/export\\s+default\\s+/g, '');
+      code = code.replace(/export\\s+\\{[^}]*\\};?/g, '');
+      code = code.replace(/export\\s+(?=function|const|let|var|class)/g, '');
+      return code;
+    }
+
+    // Make React hooks available globally (for code without imports)
     var _React = React;
     var useState = _React.useState;
     var useEffect = _React.useEffect;
@@ -189,7 +220,8 @@ export function renderPageTemplate(tsxCode: string): string {
 
     try {
       var tsxCode = ${escapedCode};
-      var renderCode = tsxCode + '\\n;ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));';
+      var transformed = __transformImports(tsxCode);
+      var renderCode = transformed + '\\n;ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));';
       var compiled = Babel.transform(renderCode, {
         presets: ['react', ['typescript', { isTSX: true, allExtensions: true }]],
         filename: 'app.tsx'
