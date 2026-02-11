@@ -1,0 +1,24 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: quick-page-ingress
+  namespace: quick-page
+  annotations:
+    cert-manager.io/cluster-issuer: lets-encrypt
+spec:
+  ingressClassName: public
+  tls:
+    - hosts:
+        - quick-page.petemertz.com
+      secretName: quick-page-ingress-tls
+  rules:
+    - host: quick-page.petemertz.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: quick-page-service
+                port:
+                  number: 80

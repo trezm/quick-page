@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quick-page
+  namespace: quick-page
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quick-page
+  template:
+    metadata:
+      labels:
+        app: quick-page
+    spec:
+      containers:
+        - name: quick-page
+          image: ghcr.io/trezm/quick-page:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              value: "3000"
+            - name: DB_PATH
+              value: /app/data/quick-page.db
+            - name: COOKIE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: quick-page-secret
+                  key: cookie-secret
+          volumeMounts:
+            - name: data
+              mountPath: /app/data
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: quick-page-data
