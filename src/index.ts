@@ -10,6 +10,9 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const COOKIE_SECRET = process.env.COOKIE_SECRET || crypto.randomBytes(32).toString('hex');
 
+// MCP routes must be registered before body parsers (SDK reads raw stream)
+setupMcp(app);
+
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser(COOKIE_SECRET));
@@ -99,8 +102,6 @@ app.post('/p/:id/auth', async (req, res) => {
     res.status(500).send('Internal server error');
   }
 });
-
-setupMcp(app);
 
 app.listen(PORT, () => {
   console.log(`Quick Page running on port ${PORT}`);
