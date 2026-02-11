@@ -156,6 +156,7 @@ export function renderPageTemplate(tsxCode: string): string {
   <title>Quick Page</title>
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
+  <script crossorigin src="https://unpkg.com/prop-types@15/prop-types.min.js"><\/script>
   <script crossorigin src="https://unpkg.com/recharts@2/umd/Recharts.js"><\/script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
   <script src="https://cdn.tailwindcss.com"><\/script>
