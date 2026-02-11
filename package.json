@@ -2,6 +2,7 @@
   "name": "quick-page",
   "version": "1.0.0",
   "description": "Host one-page TSX applications",
+  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -11,7 +12,9 @@
     "better-sqlite3": "^11.6.0",
     "bcryptjs": "^2.4.3",
     "cookie-parser": "^1.4.7",
-    "express": "^4.21.0"
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "express": "^4.21.0",
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",

@@ -1,9 +1,10 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
-import * as bcrypt from 'bcryptjs';
-import { generateId, createPage, getPage } from './db';
-import { createPageTemplate, renderPageTemplate, passwordPageTemplate } from './templates';
+import bcrypt from 'bcryptjs';
+import { generateId, createPage, getPage } from './db.js';
+import { createPageTemplate, renderPageTemplate, passwordPageTemplate } from './templates.js';
+import { setupMcp } from './mcp.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -98,6 +99,8 @@ app.post('/p/:id/auth', async (req, res) => {
     res.status(500).send('Internal server error');
   }
 });
+
+setupMcp(app);
 
 app.listen(PORT, () => {
   console.log(`Quick Page running on port ${PORT}`);
