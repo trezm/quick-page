@@ -46,6 +46,7 @@ export function setupMcp(app: Application) {
   });
 
   app.post("/mcp", async (req: Request, res: Response) => {
+    console.log(`MCP POST from ${req.ip} - UA: ${req.get("user-agent")} - Accept: ${req.get("accept")}`);
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
     if (sessionId && transports.has(sessionId)) {
@@ -74,6 +75,7 @@ export function setupMcp(app: Application) {
   });
 
   app.get("/mcp", async (req: Request, res: Response) => {
+    console.log(`MCP GET from ${req.ip} - UA: ${req.get("user-agent")} - Session: ${req.headers["mcp-session-id"]}`);
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     if (!sessionId || !transports.has(sessionId)) {
       res.status(400).json({ error: "Invalid or missing session ID. Use POST /mcp to initialize." });
