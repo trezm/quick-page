@@ -1,8 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
-import type { Application } from "express";
+import type { Application, Request, Response } from "express";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { generateId, createPage } from "./db.js";
 
 const BASE_URL = process.env.BASE_URL || "https://quick-page.petemertz.com";
@@ -36,28 +37,53 @@ function createMcpServer() {
 }
 
 export function setupMcp(app: Application) {
-  const transports = new Map<string, SSEServerTransport>();
+  const transports = new Map<string, StreamableHTTPServerTransport>();
 
-  app.get("/mcp/sse", async (req, res) => {
-    const mcpServer = createMcpServer();
-    const transport = new SSEServerTransport("/mcp/messages", res);
-    transports.set(transport.sessionId, transport);
+  app.post("/mcp", async (req: Request, res: Response) => {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
-    res.on("close", () => {
-      transports.delete(transport.sessionId);
-      mcpServer.close();
-    });
-
-    await mcpServer.connect(transport);
-  });
-
-  app.post("/mcp/messages", async (req, res) => {
-    const sessionId = req.query.sessionId as string;
-    const transport = transports.get(sessionId);
-    if (!transport) {
-      res.status(404).json({ error: "Session not found" });
+    if (sessionId && transports.has(sessionId)) {
+      const transport = transports.get(sessionId)!;
+      await transport.handleRequest(req, res, req.body);
       return;
     }
-    await transport.handlePostMessage(req, res);
+
+    // New session
+    const transport = new StreamableHTTPServerTransport({
+      sessionIdGenerator: () => crypto.randomUUID(),
+    });
+    const server = createMcpServer();
+
+    transport.onclose = () => {
+      if (transport.sessionId) transports.delete(transport.sessionId);
+    };
+
+    await server.connect(transport);
+
+    if (transport.sessionId) {
+      transports.set(transport.sessionId, transport);
+    }
+
+    await transport.handleRequest(req, res, req.body);
+  });
+
+  app.get("/mcp", async (req: Request, res: Response) => {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    if (!sessionId || !transports.has(sessionId)) {
+      res.status(400).json({ error: "Invalid or missing session ID. Use POST /mcp to initialize." });
+      return;
+    }
+    const transport = transports.get(sessionId)!;
+    await transport.handleRequest(req, res);
+  });
+
+  app.delete("/mcp", async (req: Request, res: Response) => {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    if (sessionId && transports.has(sessionId)) {
+      const transport = transports.get(sessionId)!;
+      await transport.close();
+      transports.delete(sessionId);
+    }
+    res.status(200).end();
   });
 }
