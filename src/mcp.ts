@@ -52,12 +52,29 @@ export function setupMcp(app: Application) {
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
     if (sessionId && transports.has(sessionId)) {
+      console.log(`MCP: Found existing transport for session ${sessionId}`);
       const transport = transports.get(sessionId)!;
+      // Intercept response
+      const origWrite = res.write.bind(res);
+      const origEnd = res.end.bind(res);
+      res.write = function(...args: any[]) {
+        console.log(`MCP response write: ${args[0]?.toString?.()?.substring(0, 500)}`);
+        return origWrite(...args);
+      } as any;
+      const origSetHeader = res.setHeader.bind(res);
+      res.setHeader = function(name: string, value: any) {
+        console.log(`MCP response header: ${name}=${value}`);
+        return origSetHeader(name, value);
+      };
+      res.on('finish', () => {
+        console.log(`MCP response finished: status=${res.statusCode}, content-type=${res.getHeader('content-type')}`);
+      });
       await transport.handleRequest(req, res, req.body);
       return;
     }
 
     // New session
+    console.log(`MCP: Creating new transport`);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => crypto.randomUUID(),
       enableJsonResponse: true,
@@ -69,12 +86,19 @@ export function setupMcp(app: Application) {
     };
 
     await server.connect(transport);
+    console.log(`MCP: Server connected, sessionId=${transport.sessionId}`);
 
     if (transport.sessionId) {
       transports.set(transport.sessionId, transport);
+      console.log(`MCP: Stored transport for session ${transport.sessionId}`);
     }
 
+    // Intercept response
+    res.on('finish', () => {
+      console.log(`MCP init response finished: status=${res.statusCode}, content-type=${res.getHeader('content-type')}`);
+    });
     await transport.handleRequest(req, res, req.body);
+    console.log(`MCP: handleRequest completed, sessionId now=${transport.sessionId}`);
   });
 
   app.get("/mcp", async (req: Request, res: Response) => {
