@@ -46,34 +46,15 @@ export function setupMcp(app: Application) {
   });
 
   app.post("/mcp", async (req: Request, res: Response) => {
-    console.log(`MCP POST from ${req.ip} - UA: ${req.get("user-agent")} - Accept: ${req.get("accept")}`);
-    console.log(`MCP POST body: ${JSON.stringify(req.body)}`);
-    console.log(`MCP POST headers: session=${req.headers["mcp-session-id"]}, content-type=${req.get("content-type")}`);
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
 
     if (sessionId && transports.has(sessionId)) {
-      console.log(`MCP: Found existing transport for session ${sessionId}`);
       const transport = transports.get(sessionId)!;
-      // Intercept response
-      const origWrite = res.write.bind(res);
-      (res as any).write = function(chunk: any, ...rest: any[]) {
-        console.log(`MCP response write: ${chunk?.toString?.()?.substring(0, 500)}`);
-        return origWrite(chunk, ...rest);
-      };
-      const origSetHeader = res.setHeader.bind(res);
-      res.setHeader = function(name: string, value: any) {
-        console.log(`MCP response header: ${name}=${value}`);
-        return origSetHeader(name, value);
-      };
-      res.on('finish', () => {
-        console.log(`MCP response finished: status=${res.statusCode}, content-type=${res.getHeader('content-type')}`);
-      });
       await transport.handleRequest(req, res, req.body);
       return;
     }
 
     // New session
-    console.log(`MCP: Creating new transport`);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => crypto.randomUUID(),
       enableJsonResponse: true,
@@ -85,23 +66,15 @@ export function setupMcp(app: Application) {
     };
 
     await server.connect(transport);
-    console.log(`MCP: Server connected, sessionId=${transport.sessionId}`);
+    await transport.handleRequest(req, res, req.body);
 
+    // Session ID is assigned during handleRequest (when initialize is processed)
     if (transport.sessionId) {
       transports.set(transport.sessionId, transport);
-      console.log(`MCP: Stored transport for session ${transport.sessionId}`);
     }
-
-    // Intercept response
-    res.on('finish', () => {
-      console.log(`MCP init response finished: status=${res.statusCode}, content-type=${res.getHeader('content-type')}`);
-    });
-    await transport.handleRequest(req, res, req.body);
-    console.log(`MCP: handleRequest completed, sessionId now=${transport.sessionId}`);
   });
 
   app.get("/mcp", async (req: Request, res: Response) => {
-    console.log(`MCP GET from ${req.ip} - UA: ${req.get("user-agent")} - Session: ${req.headers["mcp-session-id"]}`);
     const sessionId = req.headers["mcp-session-id"] as string | undefined;
     if (!sessionId || !transports.has(sessionId)) {
       res.status(400).json({ error: "Invalid or missing session ID. Use POST /mcp to initialize." });
