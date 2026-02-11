@@ -4,7 +4,7 @@ metadata:
   name: quick-page-ingress
   namespace: quick-page
   annotations:
-    cert-manager.io/cluster-issuer: lets-encrypt
+    cert-manager.io/cluster-issuer: letsencrypt
 spec:
   ingressClassName: public
   tls:
