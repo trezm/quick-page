@@ -20,19 +20,37 @@ db.exec(`
   )
 `);
 
+const cols = db.prepare("PRAGMA table_info(pages)").all() as { name: string }[];
+if (!cols.some(c => c.name === 'edit_token')) {
+  db.exec('ALTER TABLE pages ADD COLUMN edit_token TEXT');
+}
+if (!cols.some(c => c.name === 'updated_at')) {
+  db.exec("ALTER TABLE pages ADD COLUMN updated_at TEXT");
+}
+
 export function generateId(): string {
   return crypto.randomBytes(6).toString('base64url');
 }
 
-export function createPage(id: string, tsxCode: string, passwordHash: string | null): void {
-  db.prepare('INSERT INTO pages (id, tsx_code, password_hash) VALUES (?, ?, ?)').run(id, tsxCode, passwordHash);
+export function generateEditToken(): string {
+  return crypto.randomBytes(24).toString('base64url');
+}
+
+export function createPage(id: string, tsxCode: string, passwordHash: string | null, editToken: string): void {
+  db.prepare('INSERT INTO pages (id, tsx_code, password_hash, edit_token) VALUES (?, ?, ?, ?)').run(id, tsxCode, passwordHash, editToken);
+}
+
+export function updatePage(id: string, tsxCode: string, passwordHash: string | null): void {
+  db.prepare("UPDATE pages SET tsx_code = ?, password_hash = ?, updated_at = datetime('now') WHERE id = ?").run(tsxCode, passwordHash, id);
 }
 
 export interface Page {
   id: string;
   tsx_code: string;
   password_hash: string | null;
+  edit_token: string | null;
   created_at: string;
+  updated_at: string | null;
 }
 
 export function getPage(id: string): Page | undefined {

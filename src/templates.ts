@@ -391,6 +391,128 @@ export function createPageTemplate(): string {
 </html>`;
 }
 
+export function editPageTemplate(id: string, token: string, tsxCode: string, hasPassword: boolean): string {
+  const escapedCode = JSON.stringify(tsxCode);
+  const escapedId = JSON.stringify(id);
+  const escapedToken = JSON.stringify(token);
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Edit · Quick Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Outfit', system-ui, sans-serif; }
+    textarea { tab-size: 2; }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <div class="max-w-3xl mx-auto px-6 py-12">
+    <div class="flex items-center justify-between mb-8">
+      <div>
+        <p class="text-xs font-semibold tracking-[0.2em] uppercase text-indigo-400 mb-2 font-mono">Edit page</p>
+        <h1 class="text-2xl font-bold tracking-tight">Update <span class="font-mono text-indigo-400">/p/${id}</span></h1>
+      </div>
+      <a id="view-link" href="/p/${id}" target="_blank" class="text-sm text-slate-400 hover:text-white transition-colors">View page &rarr;</a>
+    </div>
+
+    <label class="block text-sm font-medium text-slate-300 mb-2">TSX Code</label>
+    <textarea
+      id="code"
+      class="w-full h-[28rem] bg-slate-900 text-slate-200 font-mono text-[13px] leading-relaxed p-4 rounded-lg border border-slate-800 focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 outline-none resize-y"
+      spellcheck="false"
+    ></textarea>
+
+    <div class="mt-6">
+      <label class="block text-sm font-medium text-slate-300 mb-2">
+        Password ${hasPassword ? '<span class="text-amber-400 font-normal text-xs">(currently set — leave blank to keep)</span>' : '<span class="text-slate-500 font-normal">(optional)</span>'}
+      </label>
+      <input
+        id="password"
+        type="password"
+        class="w-full max-w-xs bg-slate-900 text-slate-200 px-4 py-2 rounded-lg border border-slate-800 focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/40 outline-none placeholder:text-slate-600"
+        placeholder="${hasPassword ? 'New password (or leave blank)' : 'Leave empty for public access'}"
+      />
+      ${hasPassword ? `
+      <label class="flex items-center gap-2 mt-3 text-sm text-slate-400">
+        <input type="checkbox" id="clear-password" class="accent-indigo-500">
+        Remove password protection
+      </label>` : ''}
+    </div>
+
+    <div class="mt-8 flex items-center gap-3">
+      <button
+        id="update-btn"
+        onclick="updatePage()"
+        class="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-medium rounded-lg transition-colors cursor-pointer"
+      >
+        Update Page
+      </button>
+      <span id="status" class="text-sm text-slate-400"></span>
+    </div>
+  </div>
+
+  <script>
+    var PAGE_ID = ${escapedId};
+    var EDIT_TOKEN = ${escapedToken};
+    document.getElementById('code').value = ${escapedCode};
+
+    document.getElementById('code').addEventListener('keydown', function(e) {
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        var start = this.selectionStart;
+        var end = this.selectionEnd;
+        this.value = this.value.substring(0, start) + '  ' + this.value.substring(end);
+        this.selectionStart = this.selectionEnd = start + 2;
+      }
+    });
+
+    async function updatePage() {
+      var code = document.getElementById('code').value;
+      var password = document.getElementById('password').value;
+      var clearEl = document.getElementById('clear-password');
+      var clearPassword = clearEl ? clearEl.checked : false;
+      var btn = document.getElementById('update-btn');
+      var status = document.getElementById('status');
+
+      if (!code.trim()) return;
+
+      btn.disabled = true;
+      btn.textContent = 'Updating...';
+      status.textContent = '';
+      status.className = 'text-sm text-slate-400';
+
+      try {
+        var res = await fetch('/api/pages/' + PAGE_ID + '/edit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: EDIT_TOKEN, code: code, password: password || undefined, clearPassword: clearPassword })
+        });
+        var data = await res.json();
+        if (res.ok) {
+          status.textContent = 'Saved.';
+          status.className = 'text-sm text-emerald-400';
+        } else {
+          status.textContent = data.error || 'Failed to update';
+          status.className = 'text-sm text-rose-400';
+        }
+      } catch (e) {
+        status.textContent = 'Failed to update';
+        status.className = 'text-sm text-rose-400';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Update Page';
+      }
+    }
+  </script>
+</body>
+</html>`;
+}
+
 export function renderPageTemplate(tsxCode: string): string {
   const escapedCode = JSON.stringify(tsxCode).replace(/</g, '\\u003c');
 

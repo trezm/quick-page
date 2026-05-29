@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Application, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { generateId, createPage } from "./db.js";
+import { generateId, generateEditToken, createPage } from "./db.js";
 
 const BASE_URL = process.env.BASE_URL || "https://quick-page.petemertz.com";
 
@@ -16,18 +16,20 @@ function createMcpServer() {
 
   server.tool(
     "create_quick_page",
-    "Create a new Quick Page — a hosted, shareable one-page TSX application. The code should export a default component. React hooks and Tailwind CSS are available globally. Recharts is available for data visualization. Returns a URL to view the rendered page.",
+    "Create a new Quick Page — a hosted, shareable one-page TSX application. The code should export a default component. React hooks and Tailwind CSS are available globally. Recharts is available for data visualization. Returns a view URL for sharing and an edit URL (a secret link) the creator can use to revise the page.",
     {
       code: z.string().describe("TSX source code. Must use `export default` for the root component. React, Tailwind CSS, and Recharts are available without bundling."),
       password: z.string().optional().describe("Optional password to protect the page"),
     },
     async ({ code, password }) => {
       const id = generateId();
+      const editToken = generateEditToken();
       const passwordHash = password ? await bcrypt.hash(password, 10) : null;
-      createPage(id, code, passwordHash);
+      createPage(id, code, passwordHash, editToken);
 
       const url = `${BASE_URL}/p/${id}`;
-      const parts = [`Page created: ${url}`];
+      const editUrl = `${BASE_URL}/e/${id}/${editToken}`;
+      const parts = [`Page created: ${url}`, `Edit URL (keep private): ${editUrl}`];
       if (password) parts.push(`Password: ${password}`);
       return { content: [{ type: "text" as const, text: parts.join("\n") }] };
     }
