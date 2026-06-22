@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import { isInitializeRequest } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import type { Application, Request, Response } from "express";
 import bcrypt from "bcryptjs";
@@ -53,6 +54,30 @@ export function setupMcp(app: Application) {
     if (sessionId && transports.has(sessionId)) {
       const transport = transports.get(sessionId)!;
       await transport.handleRequest(req, res, req.body);
+      return;
+    }
+
+    // A session ID was provided but we don't know it — e.g. the server
+    // restarted and lost its in-memory session map. Respond 404 so the client
+    // discards the stale session and re-initializes, instead of falling through
+    // and feeding a non-initialize request into a fresh transport (which would
+    // confusingly fail with "Server not initialized").
+    if (sessionId) {
+      res.status(404).json({
+        jsonrpc: "2.0",
+        error: { code: -32001, message: "Session not found" },
+        id: req.body?.id ?? null,
+      });
+      return;
+    }
+
+    // No session ID: only an initialize request may start a new session.
+    if (!isInitializeRequest(req.body)) {
+      res.status(400).json({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: "Bad Request: initialize required to start a session" },
+        id: req.body?.id ?? null,
+      });
       return;
     }
 
