@@ -526,6 +526,7 @@ export function renderPageTemplate(tsxCode: string): string {
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
   <script crossorigin src="https://unpkg.com/prop-types@15/prop-types.min.js"><\/script>
   <script crossorigin src="https://unpkg.com/recharts@2/umd/Recharts.js"><\/script>
+  <script crossorigin src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"><\/script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
   <script src="https://cdn.tailwindcss.com"><\/script>
   <style>
@@ -541,22 +542,31 @@ export function renderPageTemplate(tsxCode: string): string {
       "react": React,
       "react-dom": ReactDOM,
       "react-dom/client": ReactDOM,
-      "recharts": typeof Recharts !== "undefined" ? Recharts : {}
+      "recharts": typeof Recharts !== "undefined" ? Recharts : {},
+      "lucide-react": typeof LucideReact !== "undefined" ? LucideReact : {}
     };
 
-    // Transform import statements to use __modules
+    // Resolve a module by name, with a clear error for anything unavailable.
+    function __require(mod) {
+      if (Object.prototype.hasOwnProperty.call(__modules, mod)) return __modules[mod];
+      throw new Error('Module "' + mod + '" is not available in Quick Page. Available modules: react, react-dom, recharts, lucide-react. Inline everything else into the page.');
+    }
+
+    // Transform import statements to use __require
     function __transformImports(code) {
-      // import { X, Y } from "module"
+      // import { X, Y as Z } from "module"
       code = code.replace(/import\\s*\\{([^}]+)\\}\\s*from\\s*["']([^"']+)["'];?/g, function(_, imports, mod) {
-        return 'const {' + imports + '} = __modules["' + mod + '"];';
+        // "X as Y" is import-binding syntax; rewrite to "X: Y" for destructuring.
+        var names = imports.replace(/([A-Za-z0-9_$]+)\\s+as\\s+([A-Za-z0-9_$]+)/g, '$1: $2');
+        return 'const {' + names + '} = __require("' + mod + '");';
       });
       // import Default from "module"
-      code = code.replace(/import\\s+(\\w+)\\s+from\\s+["']([^"']+)["'];?/g, function(_, name, mod) {
-        return 'const ' + name + ' = __modules["' + mod + '"].default || __modules["' + mod + '"];';
+      code = code.replace(/import\\s+([A-Za-z0-9_$]+)\\s+from\\s+["']([^"']+)["'];?/g, function(_, name, mod) {
+        return 'const ' + name + ' = (function(){ var __m = __require("' + mod + '"); return __m && __m.default || __m; })();';
       });
       // import * as X from "module"
-      code = code.replace(/import\\s+\\*\\s+as\\s+(\\w+)\\s+from\\s+["']([^"']+)["'];?/g, function(_, name, mod) {
-        return 'const ' + name + ' = __modules["' + mod + '"];';
+      code = code.replace(/import\\s+\\*\\s+as\\s+([A-Za-z0-9_$]+)\\s+from\\s+["']([^"']+)["'];?/g, function(_, name, mod) {
+        return 'const ' + name + ' = __require("' + mod + '");';
       });
       // capture default export as __qp_default
       code = code.replace(/export\\s+default\\s+/g, 'var __qp_default = ');
