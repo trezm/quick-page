@@ -79,7 +79,10 @@ page will fail to compile:
   also `import { useState } from "react"`; both work.
 - **Tailwind CSS is available** via CDN — use utility classes directly.
 - **Recharts is available** — `import { LineChart, Line, XAxis, … } from "recharts"`.
-- **No other npm packages.** No fetch to packages that aren't bundled, no CSS
+- **lucide-react is available** — `import { Check, ArrowRight, … } from "lucide-react"`.
+  Aliased imports (`import { Check as CheckIcon }`) also work.
+- **No other npm packages.** No `framer-motion`, no other icon sets, no fetch to
+  packages that aren't bundled, no CSS
   imports, no image files. Everything must be self-contained in the one file.
 - **Inline your data.** The page is static and standalone — bake any data the
   user needs directly into the component as constants.

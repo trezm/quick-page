@@ -16,9 +16,9 @@ function createMcpServer() {
 
   server.tool(
     "create_quick_page",
-    "Create a new Quick Page — a hosted, shareable one-page TSX application. The code should export a default component. React hooks and Tailwind CSS are available globally. Recharts is available for data visualization. Returns a view URL for sharing and an edit URL (a secret link) the creator can use to revise the page.",
+    "Create a new Quick Page — a hosted, shareable one-page TSX application. The code should export a default component. React hooks and Tailwind CSS are available globally. Recharts (charts) and lucide-react (icons) are available for import. No other npm packages are bundled — inline everything else. Returns a view URL for sharing and an edit URL (a secret link) the creator can use to revise the page.",
     {
-      code: z.string().describe("TSX source code. Must use `export default` for the root component. React, Tailwind CSS, and Recharts are available without bundling."),
+      code: z.string().describe("TSX source code. Must use `export default` for the root component. Available imports: react, recharts, lucide-react. Tailwind CSS classes work directly. Do not import any other npm packages — they are not bundled."),
       password: z.string().optional().describe("Optional password to protect the page"),
     },
     async ({ code, password }) => {
