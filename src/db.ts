@@ -27,6 +27,9 @@ if (!cols.some(c => c.name === 'edit_token')) {
 if (!cols.some(c => c.name === 'updated_at')) {
   db.exec("ALTER TABLE pages ADD COLUMN updated_at TEXT");
 }
+if (!cols.some(c => c.name === 'views')) {
+  db.exec("ALTER TABLE pages ADD COLUMN views INTEGER NOT NULL DEFAULT 0");
+}
 
 export function generateId(): string {
   return crypto.randomBytes(6).toString('base64url');
@@ -51,10 +54,28 @@ export interface Page {
   edit_token: string | null;
   created_at: string;
   updated_at: string | null;
+  views: number;
 }
 
 export function getPage(id: string): Page | undefined {
   return db.prepare('SELECT * FROM pages WHERE id = ?').get(id) as Page | undefined;
+}
+
+export function incrementViews(id: string): void {
+  db.prepare('UPDATE pages SET views = views + 1 WHERE id = ?').run(id);
+}
+
+export interface PageStat {
+  id: string;
+  views: number;
+  created_at: string;
+  protected: number;
+}
+
+export function getStats(): PageStat[] {
+  return db
+    .prepare('SELECT id, views, created_at, (password_hash IS NOT NULL) AS protected FROM pages ORDER BY views DESC, created_at DESC')
+    .all() as PageStat[];
 }
 
 export default db;

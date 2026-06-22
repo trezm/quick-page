@@ -1,3 +1,66 @@
+import type { PageStat } from './db.js';
+
+export function statsPageTemplate(stats: PageStat[]): string {
+  const totalViews = stats.reduce((sum, p) => sum + p.views, 0);
+  const rows = stats.length
+    ? stats
+        .map(
+          (p) => `
+        <tr class="border-b border-slate-800/60">
+          <td class="py-2.5 pr-4">
+            <a href="/p/${p.id}" class="font-mono text-sm text-indigo-400 hover:text-indigo-300 break-all">${p.id}</a>
+            ${p.protected ? '<span class="ml-2 text-xs text-amber-400/80">🔒</span>' : ''}
+          </td>
+          <td class="py-2.5 pr-4 text-right tabular-nums font-semibold">${p.views.toLocaleString()}</td>
+          <td class="py-2.5 text-slate-500 text-sm whitespace-nowrap">${p.created_at}</td>
+        </tr>`
+        )
+        .join('')
+    : `<tr><td colspan="3" class="py-8 text-center text-slate-500">No pages yet.</td></tr>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stats · Quick Page</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <style>body { font-family: ui-sans-serif, system-ui, sans-serif; }</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+  <div class="max-w-2xl mx-auto px-6 py-12">
+    <div class="flex items-baseline justify-between mb-8">
+      <h1 class="text-2xl font-bold tracking-tight">Stats</h1>
+      <a href="/" class="text-sm text-slate-400 hover:text-white transition-colors">&larr; Home</a>
+    </div>
+
+    <div class="flex gap-8 mb-8">
+      <div>
+        <div class="text-3xl font-bold tabular-nums">${totalViews.toLocaleString()}</div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mt-1">Total views</div>
+      </div>
+      <div>
+        <div class="text-3xl font-bold tabular-nums">${stats.length.toLocaleString()}</div>
+        <div class="text-xs uppercase tracking-wider text-slate-500 mt-1">Pages</div>
+      </div>
+    </div>
+
+    <table class="w-full">
+      <thead>
+        <tr class="border-b border-slate-700 text-left text-xs uppercase tracking-wider text-slate-500">
+          <th class="py-2 pr-4 font-semibold">Page</th>
+          <th class="py-2 pr-4 font-semibold text-right">Views</th>
+          <th class="py-2 font-semibold">Created</th>
+        </tr>
+      </thead>
+      <tbody>${rows}
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>`;
+}
+
 export function createPageTemplate(): string {
   return `<!DOCTYPE html>
 <html lang="en">

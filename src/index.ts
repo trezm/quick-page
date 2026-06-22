@@ -2,8 +2,8 @@ import express from 'express';
 import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
-import { generateId, generateEditToken, createPage, getPage, updatePage } from './db.js';
-import { createPageTemplate, editPageTemplate, renderPageTemplate, passwordPageTemplate } from './templates.js';
+import { generateId, generateEditToken, createPage, getPage, updatePage, incrementViews, getStats } from './db.js';
+import { createPageTemplate, editPageTemplate, renderPageTemplate, passwordPageTemplate, statsPageTemplate } from './templates.js';
 import { setupMcp } from './mcp.js';
 
 const app = express();
@@ -67,7 +67,12 @@ app.get('/p/:id', (req, res) => {
     }
   }
 
+  incrementViews(page.id);
   res.send(renderPageTemplate(page.tsx_code));
+});
+
+app.get('/stats', (_req, res) => {
+  res.send(statsPageTemplate(getStats()));
 });
 
 app.post('/p/:id/auth', async (req, res) => {
