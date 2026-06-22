@@ -527,7 +527,7 @@ export function renderPageTemplate(tsxCode: string): string {
   <script crossorigin src="https://unpkg.com/prop-types@15/prop-types.min.js"><\/script>
   <script crossorigin src="https://unpkg.com/recharts@2/umd/Recharts.js"><\/script>
   <script crossorigin src="https://unpkg.com/lucide-react@0.263.1/dist/umd/lucide-react.js"><\/script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+  <script src="https://unpkg.com/@babel/standalone@7/babel.min.js"><\/script>
   <script src="https://cdn.tailwindcss.com"><\/script>
   <style>
     body { margin: 0; }
@@ -603,7 +603,7 @@ export function renderPageTemplate(tsxCode: string): string {
       var transformed = __transformImports(tsxCode);
       var renderCode = transformed + '\\n;ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(typeof __qp_default !== "undefined" ? __qp_default : App));';
       var compiled = Babel.transform(renderCode, {
-        presets: ['react', ['typescript', { isTSX: true, allExtensions: true }]],
+        presets: ['react', 'typescript'],
         filename: 'app.tsx'
       }).code;
       eval(compiled);
