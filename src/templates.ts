@@ -1,4 +1,28 @@
-import type { PageStat } from './db.js';
+import type { Page, PageStat } from './db.js';
+
+export function pageStatsTemplate(page: Page): string {
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stats · /p/${page.id}</title>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+  <style>body { font-family: ui-sans-serif, system-ui, sans-serif; }</style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center">
+  <div class="w-full max-w-sm px-6 py-12 text-center">
+    <p class="text-xs uppercase tracking-wider text-slate-500 mb-2">Page stats</p>
+    <a href="/p/${page.id}" class="font-mono text-indigo-400 hover:text-indigo-300 text-sm break-all">/p/${page.id}</a>
+    <div class="mt-8">
+      <div class="text-6xl font-bold tabular-nums">${page.views.toLocaleString()}</div>
+      <div class="text-sm uppercase tracking-wider text-slate-500 mt-2">${page.views === 1 ? 'view' : 'views'}</div>
+    </div>
+    <div class="mt-8 text-sm text-slate-500">Created ${page.created_at}${page.updated_at ? ` · Updated ${page.updated_at}` : ''}</div>
+  </div>
+</body>
+</html>`;
+}
 
 export function statsPageTemplate(stats: PageStat[]): string {
   const totalViews = stats.reduce((sum, p) => sum + p.views, 0);

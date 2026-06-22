@@ -3,7 +3,7 @@ import cookieParser from 'cookie-parser';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { generateId, generateEditToken, createPage, getPage, updatePage, incrementViews, getStats } from './db.js';
-import { createPageTemplate, editPageTemplate, renderPageTemplate, passwordPageTemplate, statsPageTemplate } from './templates.js';
+import { createPageTemplate, editPageTemplate, renderPageTemplate, passwordPageTemplate, statsPageTemplate, pageStatsTemplate } from './templates.js';
 import { setupMcp } from './mcp.js';
 
 const app = express();
@@ -69,6 +69,15 @@ app.get('/p/:id', (req, res) => {
 
   incrementViews(page.id);
   res.send(renderPageTemplate(page.tsx_code));
+});
+
+app.get('/p/:id/stats', (req, res) => {
+  const page = getPage(req.params.id);
+  if (!page) {
+    res.status(404).send('Page not found');
+    return;
+  }
+  res.send(pageStatsTemplate(page));
 });
 
 app.get('/stats', (_req, res) => {
