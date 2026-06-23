@@ -5,7 +5,7 @@ import { z } from "zod";
 import type { Application, Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { generateId, generateEditToken, createPage } from "./db.js";
+import { generateId, generateEditToken, createPage, getPage, updatePage } from "./db.js";
 
 const BASE_URL = process.env.BASE_URL || "https://quick-page.petemertz.com";
 
@@ -30,8 +30,56 @@ function createMcpServer() {
 
       const url = `${BASE_URL}/p/${id}`;
       const editUrl = `${BASE_URL}/e/${id}/${editToken}`;
-      const parts = [`Page created: ${url}`, `Edit URL (keep private): ${editUrl}`];
+      const parts = [
+        `Page created: ${url}`,
+        `Page id: ${id}`,
+        `Update token (keep private): ${editToken}`,
+        `Edit URL (web): ${editUrl}`,
+        `To revise this page later, call update_quick_page with the id and update token above. The token changes on every update.`,
+      ];
       if (password) parts.push(`Password: ${password}`);
+      return { content: [{ type: "text" as const, text: parts.join("\n") }] };
+    }
+  );
+
+  server.tool(
+    "update_quick_page",
+    "Update an existing Quick Page's code (and optionally its password). Requires the secret update token from when the page was created or last updated. Pages created before update tokens existed can be updated once without a token. Returns the view URL and a NEW update token — the previous token is invalidated on every update, so save the new one for the next edit.",
+    {
+      id: z.string().describe("The page id — the part after /p/ in the page's URL."),
+      token: z.string().optional().describe("The secret update token returned by the last create/update. Required for any page that already has one; optional only for legacy pages that have never had a token."),
+      code: z.string().describe("New TSX source code that fully replaces the page. Same constraints as create_quick_page: `export default` root component; only react, recharts, lucide-react may be imported; Tailwind classes work directly."),
+      password: z.string().optional().describe("Set or change the page password. Omit to leave the existing password unchanged."),
+      clearPassword: z.boolean().optional().describe("Set true to remove password protection from the page."),
+    },
+    async ({ id, token, code, password, clearPassword }) => {
+      const page = getPage(id);
+      if (!page) {
+        return { content: [{ type: "text" as const, text: `No page found with id "${id}".` }], isError: true };
+      }
+      // A token is required only once a page has one. Legacy pages with no token
+      // can be claimed by their first update.
+      if (page.edit_token && page.edit_token !== token) {
+        return { content: [{ type: "text" as const, text: "Invalid or missing update token for this page." }], isError: true };
+      }
+
+      let passwordHash = page.password_hash;
+      if (clearPassword) {
+        passwordHash = null;
+      } else if (password) {
+        passwordHash = await bcrypt.hash(password, 10);
+      }
+
+      const newToken = updatePage(page.id, code, passwordHash);
+
+      const url = `${BASE_URL}/p/${page.id}`;
+      const editUrl = `${BASE_URL}/e/${page.id}/${newToken}`;
+      const parts = [
+        `Page updated: ${url}`,
+        `New update token (keep private): ${newToken}`,
+        `Edit URL (web): ${editUrl}`,
+        `The previous token no longer works — use this one for the next update.`,
+      ];
       return { content: [{ type: "text" as const, text: parts.join("\n") }] };
     }
   );

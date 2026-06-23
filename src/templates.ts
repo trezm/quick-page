@@ -581,6 +581,12 @@ export function editPageTemplate(id: string, token: string, tsxCode: string, has
         });
         var data = await res.json();
         if (res.ok) {
+          // The update token rotates on every save; adopt the new one so the
+          // next save works and the edit URL stays valid on reload.
+          if (data.editToken) {
+            EDIT_TOKEN = data.editToken;
+            history.replaceState(null, '', '/e/' + PAGE_ID + '/' + data.editToken);
+          }
           status.textContent = 'Saved.';
           status.className = 'text-sm text-emerald-400';
         } else {

@@ -135,8 +135,15 @@ app.post('/api/pages/:id/edit', async (req, res) => {
     const { token, code, password, clearPassword } = req.body;
     const page = getPage(req.params.id);
 
-    if (!page || !page.edit_token || page.edit_token !== token) {
+    if (!page) {
       res.status(404).json({ error: 'Page not found' });
+      return;
+    }
+
+    // A token is required only once a page has one. Legacy pages with no token
+    // can be claimed by their first update, which then sets a token.
+    if (page.edit_token && page.edit_token !== token) {
+      res.status(403).json({ error: 'Invalid update token' });
       return;
     }
 
@@ -152,14 +159,15 @@ app.post('/api/pages/:id/edit', async (req, res) => {
       passwordHash = await bcrypt.hash(password, 10);
     }
 
-    updatePage(page.id, code, passwordHash);
+    const newToken = updatePage(page.id, code, passwordHash);
 
     const host = req.get('host') || 'quick-page.petemertz.com';
     const proto = req.get('x-forwarded-proto') || req.protocol;
     res.json({
       id: page.id,
       url: `${proto}://${host}/p/${page.id}`,
-      editUrl: `${proto}://${host}/e/${page.id}/${page.edit_token}`,
+      editUrl: `${proto}://${host}/e/${page.id}/${newToken}`,
+      editToken: newToken,
     });
   } catch (e) {
     console.error('Error updating page:', e);

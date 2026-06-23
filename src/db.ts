@@ -43,8 +43,13 @@ export function createPage(id: string, tsxCode: string, passwordHash: string | n
   db.prepare('INSERT INTO pages (id, tsx_code, password_hash, edit_token) VALUES (?, ?, ?, ?)').run(id, tsxCode, passwordHash, editToken);
 }
 
-export function updatePage(id: string, tsxCode: string, passwordHash: string | null): void {
-  db.prepare("UPDATE pages SET tsx_code = ?, password_hash = ?, updated_at = datetime('now') WHERE id = ?").run(tsxCode, passwordHash, id);
+// Updates a page and rotates its edit token. Returns the new token; the
+// previous one is invalidated.
+export function updatePage(id: string, tsxCode: string, passwordHash: string | null): string {
+  const editToken = generateEditToken();
+  db.prepare("UPDATE pages SET tsx_code = ?, password_hash = ?, edit_token = ?, updated_at = datetime('now') WHERE id = ?")
+    .run(tsxCode, passwordHash, editToken, id);
+  return editToken;
 }
 
 export interface Page {
